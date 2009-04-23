@@ -17,7 +17,7 @@ use warnings;
 use Getopt::Long;       # command line processing
 use Pod::Usage;
 
-my %list_ommit_sub_name=();
+my %list_omit_sub_name=();
 # TODO: use GraphViz
 #       Sadly, it refuses to install on my Win2k Workstation :-(
 #
@@ -38,7 +38,7 @@ if( $parameters->{'start'} )
 #Fill list of sub names to be excluded
 if( $parameters->{'exclude'} ){    
   foreach (split(/,/,$parameters->{'exclude'})){
-   $list_ommit_sub_name{$_}++;
+   $list_omit_sub_name{$_}++;
   }
 }
 
@@ -102,8 +102,8 @@ continue
 #
 foreach my $caller_sub ( keys %{$sub_call} )
 {        
-    #ommit exclude functions  
-    next if(exists $list_ommit_sub_name{$caller_sub});    
+    #omit exclude functions  
+    next if(exists $list_omit_sub_name{$caller_sub});    
          
     foreach my $caller_file ( keys %{$sub_call->{$caller_sub}} )
     {
@@ -111,8 +111,8 @@ foreach my $caller_sub ( keys %{$sub_call} )
         {
             # skip while(), for() and module calls
             next unless( exists $sub_definition->{$referenced_sub} );
-            #ommit excluded functions 
-            next if (exists $list_ommit_sub_name{$referenced_sub});        
+            #omit excluded functions 
+            next if (exists $list_omit_sub_name{$referenced_sub});        
 
             if( exists $sub_definition->{$referenced_sub}{$caller_file} )
             {
