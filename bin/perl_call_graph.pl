@@ -17,13 +17,14 @@ use warnings;
 use Getopt::Long;       # command line processing
 use Pod::Usage;
 
+my %list_ommit_sub_name=();
 # TODO: use GraphViz
 #       Sadly, it refuses to install on my Win2k Workstation :-(
 #
 # use GraphViz;           # for generating the actual call graph images
 
 my $parameters = {};
-my $got_opts   = GetOptions( $parameters, 'start=s', 'cluster!', 'help|?', );
+my $got_opts   = GetOptions( $parameters, 'start=s', 'exclude=s', 'cluster!', 'help|?' );
 
 pod2usage(2)        if $parameters->{'help'} or ! $got_opts;
 
@@ -32,6 +33,13 @@ my $start_node_regex = undef;
 if( $parameters->{'start'} )
 {
     $start_node_regex = qr/$parameters->{'start'}/i;
+}
+
+#Fill list of sub names to be excluded
+if( $parameters->{'exclude'} ){    
+  foreach (split(/,/,$parameters->{'exclude'})){
+   $list_ommit_sub_name{$_}++;
+  }
 }
 
 #
@@ -60,8 +68,8 @@ while( my $line = <> )
     next LINE if $line =~ /^\s*(#.*)?$/;  # skip empty lines and comments
 
     if( $line =~ /^\s*sub\s+(\w+)/ )
-    {
-        $current_sub = $1;
+    {                                  
+        $current_sub = $1;                    
         $sub_definition->{$current_sub}{$current_file}{'line'} = $.;
         next LINE;
     }
@@ -93,13 +101,18 @@ continue
 # third:    complain about an ambiguous call if the callee has multiple definitions
 #
 foreach my $caller_sub ( keys %{$sub_call} )
-{
+{        
+    #ommit exclude functions  
+    next if(exists $list_ommit_sub_name{$caller_sub});    
+         
     foreach my $caller_file ( keys %{$sub_call->{$caller_sub}} )
     {
         foreach my $referenced_sub ( keys %{$sub_call->{$caller_sub}{$caller_file}} )
         {
             # skip while(), for() and module calls
             next unless( exists $sub_definition->{$referenced_sub} );
+            #ommit excluded functions 
+            next if (exists $list_ommit_sub_name{$referenced_sub});        
 
             if( exists $sub_definition->{$referenced_sub}{$caller_file} )
             {
@@ -292,7 +305,7 @@ perl_call_graph.pl - generate a call graph in GraphViz' DOT format for a group o
 
 =head1 SYNOPSIS
 
-1:  perl_call_graph.pl [--start=regex] [--[no]cluster] *.pl > graph.dot
+1:  perl_call_graph.pl [--start=regex] [--exclude=sub_name1,[sub_name2]] [--[no]cluster] *.pl > graph.dot
 
 2:  dot -Tjpg -o graph.jpg graph.dot
 
